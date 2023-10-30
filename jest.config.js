@@ -7,5 +7,5 @@ module.exports = {
     "/node_modules/",
     "stories",
   ],
-  coverageReporters: ["lcov"],
+  coverageReporters: ["lcov", "text"],
 };

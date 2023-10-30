@@ -19,5 +19,10 @@ export interface TFixtureFunction<TObject extends TFixture> {
   /**
    * Extend this fixture function to create a new one with different defaults.
    */
-  extend<TNextObject extends TObject>(newDefaults: TNextObject): TFixtureFunction<TNextObject>;
+  extend<TNextObject extends TObject>(getDefaultsFn: (existingDefaults: Readonly<TObject>) => TNextObject): TFixtureFunction<TNextObject>;
+
+  /**
+   * Create a new fixture function with different defaults.
+   */
+  defaults(nextDefaults: Partial<TObject>): TFixtureFunction<TObject>;
 }

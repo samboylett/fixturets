@@ -32,4 +32,9 @@ export interface TFixtureClass<TObject extends TFixture> {
    * Generate a function from the class.
    */
   createFunction(): TFixtureFunction<TObject>;
+
+  /**
+   * Add a getter calculator.
+   */
+  addGetter<TKey extends keyof TObject>(key: TKey, calculate: (obj: TObject) => TObject[TKey]): TFixtureClass<TObject>;
 }

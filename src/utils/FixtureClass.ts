@@ -1,13 +1,16 @@
 import { TFixture, TFixtureFunction, TOverrides } from "../types";
 import { TDefaultObject } from "../types/TDefaultObject";
 import { TFixtureClass } from "../types/TFixtureClass";
+import { TGetter } from "../types/TGetter";
 import { mergeOverrides } from "./mergeOverrides";
 
 export class FixtureClass<TObject extends TFixture> implements TFixtureClass<TObject> {
   protected defaultFixture: TDefaultObject<TObject>;
+  protected getters: Array<TGetter<TObject, keyof TObject>>;
 
-  constructor(defaultFixture: TDefaultObject<TObject>) {
+  constructor(defaultFixture: TDefaultObject<TObject>, getters: Array<TGetter<TObject, keyof TObject>> = []) {
     this.defaultFixture = defaultFixture;
+    this.getters = getters;
   }
 
   protected getDefaultAttributes = (): Readonly<TObject> => Object.freeze(
@@ -21,7 +24,10 @@ export class FixtureClass<TObject extends TFixture> implements TFixtureClass<TOb
   >(overridesOrFn: TOverrides<TObject, TNextObject>) => mergeOverrides(this.getDefaultAttributes(), overridesOrFn);
 
   generate = (overrides: TOverrides<TObject, Partial<TObject>> = {}): TObject =>
-    this.mergeOverrides(overrides);
+    this.getters.reduce((prev, getter) => ({
+      ...prev,
+      [getter.attribute]: getter.calculate(prev),
+    }), this.mergeOverrides(overrides));
 
   array = (overrides: TOverrides<TObject, Partial<TObject>>[]): TObject[] =>
     overrides.map(this.generate);
@@ -35,6 +41,15 @@ export class FixtureClass<TObject extends TFixture> implements TFixtureClass<TOb
   defaults = (nextDefaults: TOverrides<TObject, Partial<TObject>>): TFixtureClass<TObject> =>
     new FixtureClass<TObject>(this.mergeOverrides<Partial<TObject>>(nextDefaults));
 
+  addGetter = <TKey extends keyof TObject>(key: TKey, calculate: (obj: TObject) => TObject[TKey]) =>
+    new FixtureClass(this.defaultFixture, [
+      ...this.getters,
+      {
+        attribute: key,
+        calculate,
+      }
+    ]);
+
   createFunction(): TFixtureFunction<TObject> {
     const fixtureFunction: TFixtureFunction<TObject> = (overrides) => this.generate(overrides);
 
@@ -43,6 +58,11 @@ export class FixtureClass<TObject extends TFixture> implements TFixtureClass<TOb
     fixtureFunction.array = this.array;
     fixtureFunction.overwrite = this.overwrite;
     fixtureFunction.createFunction = this.createFunction;
+
+    fixtureFunction.addGetter = <TKey extends keyof TObject>(
+      key: TKey,
+      calculate: (obj: TObject) => TObject[TKey]
+    ) => this.addGetter(key, calculate).createFunction();
 
     fixtureFunction.extend = <TNextObject extends TObject>(getDefaultsFn: TOverrides<TObject, TNextObject>) =>
       this.extend<TNextObject>(getDefaultsFn).createFunction();

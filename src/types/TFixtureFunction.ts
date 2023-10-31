@@ -19,6 +19,11 @@ export interface TFixtureFunction<TObject extends TFixture> extends TFixtureClas
   defaults(nextDefaults: TOverrides<TObject, Partial<TObject>>): TFixtureFunction<TObject>;
 
   /**
+   * Add a getter calculator.
+   */
+  addGetter<TKey extends keyof TObject>(key: TKey, calculate: (obj: TObject) => TObject[TKey]): TFixtureFunction<TObject>;
+
+  /**
    * The underlying class.
    */
   context: TFixtureClass<TObject>;

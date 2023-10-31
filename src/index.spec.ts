@@ -1,4 +1,4 @@
-import { TFixtureFunction, createFixtureFunction } from "./index";
+import { FixtureClass, TFixtureFunction, createFixtureFunction } from "./index";
 
 interface TTestType {
   foo: string;
@@ -34,7 +34,11 @@ describe("createFixtureFunction", () => {
       expect(getTestType).toEqual(expect.any(Function));
     });
 
-    test.each(["array", "overwrite", "extend"])("returns the fn.%s function", fnName => {
+    test("fn.context returns instance of the class", () => {
+      expect(getTestType.context).toEqual(expect.any(FixtureClass));
+    });
+
+    test.each(["array", "overwrite", "extend", "defaults", "addGetter", "createFunction", "generate"])("returns the fn.%s function", fnName => {
       expect(getTestType).toEqual(expect.objectContaining({
         [fnName]: expect.any(Function),
       }));
@@ -104,6 +108,25 @@ describe("createFixtureFunction", () => {
       test("calls callback with default values", () => {
         expect(callback).toHaveBeenCalledWith({
           foo: "a",
+          bar: 1,
+        });
+      });
+    });
+
+    describe("when calling getTestType.addGetter", () => {
+      let getCalculatedTestType: TFixtureFunction<TTestType>;
+
+      beforeEach(() => {
+        getCalculatedTestType = getTestType.addGetter("foo", (obj) => `Bar is: ${obj.bar}`);
+      });
+
+      test("returns a function", () => {
+        expect(getCalculatedTestType).toEqual(expect.any(Function));
+      });
+
+      test("calling getCalculatedTestType with out args returns the default type", () => {
+        expect(getCalculatedTestType()).toEqual({
+          foo: "Bar is: 1",
           bar: 1,
         });
       });

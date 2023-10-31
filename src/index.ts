@@ -1,2 +1,2 @@
-export * from "./createFixtureFunction/createFixtureFunction";
+export * from "./utils";
 export * from "./types";

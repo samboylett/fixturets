@@ -1,27 +1,33 @@
 import merge from "lodash.merge";
 import { TFixture } from "../types/TFixture"
 import { TFixtureFunction } from "../types/TFixtureFunction"
+import { parseOverrides } from "../utils/parseOverrides";
+import { TOverrides } from "../types/TOverrides";
+import { mergeOverrides } from "../utils/mergeOverrides";
 
 /**
  * Create a fixture function.
  */
-export const createFixtureFunction = <TObject extends TFixture>(baseDefaultAttributes: TObject): TFixtureFunction<TObject> => {
-  const defaultAttributes = Object.freeze(baseDefaultAttributes);
-  
-  const fixtureFunction: TFixtureFunction<TObject> = (overrides = {}) => merge<{}, TObject, Partial<TObject>>({}, defaultAttributes, overrides);
+export const createFixtureFunction = <TObject extends TFixture>(baseDefaultAttributes: TObject | (() => TObject)): TFixtureFunction<TObject> => {
+  const getDefaultAttributes = (): Readonly<TObject> => Object.freeze(
+    typeof baseDefaultAttributes === "function"
+      ? baseDefaultAttributes()
+      : baseDefaultAttributes
+  );
+
+  const fixtureFunction: TFixtureFunction<TObject> = (overridesOrFn = {}) =>
+    mergeOverrides<TObject, Partial<TObject>>(getDefaultAttributes(), overridesOrFn);
 
   fixtureFunction.array = (overrides) => overrides.map(fixtureFunction);
 
-  fixtureFunction.overwrite = (base, overrides) => fixtureFunction(merge<{}, TObject, Partial<TObject>>({}, base, overrides));
+  fixtureFunction.overwrite = (base, overrides) =>
+    fixtureFunction(mergeOverrides<TObject, Partial<TObject>>(base, overrides));
 
-  fixtureFunction.extend = <TNextObject extends TObject>(getDefaultsFn: (existingDefaults: Readonly<TObject>) => TNextObject) => {
-    const nextDefaults = getDefaultsFn(defaultAttributes);
+  fixtureFunction.extend = <TNextObject extends TObject>(getDefaultsFn: TOverrides<TObject, TNextObject>) =>
+    createFixtureFunction<TNextObject>(mergeOverrides<TObject, TNextObject>(getDefaultAttributes(), getDefaultsFn));
 
-    return createFixtureFunction<TNextObject>(merge<{}, TObject, TNextObject>({}, defaultAttributes, nextDefaults));
-  }
-
-  fixtureFunction.defaults = (nextDefaults: Partial<TObject>) => 
-    createFixtureFunction<TObject>(merge<{}, TObject, Partial<TObject>>({}, defaultAttributes, nextDefaults));
+  fixtureFunction.defaults = (nextDefaults: TOverrides<TObject, Partial<TObject>>) =>
+    createFixtureFunction<TObject>(mergeOverrides<TObject, Partial<TObject>>(getDefaultAttributes(), nextDefaults));
 
   return fixtureFunction;
 }

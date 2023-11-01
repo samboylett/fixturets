@@ -27,41 +27,47 @@ export class FixtureClass<TObject extends TFixture> implements TFixtureClass<TOb
     return this.constructor as typeof FixtureClass;
   }
 
-  generate = (overrides: TOverrides<TObject, Partial<TObject>> = {}): TObject =>
-    this.getters.reduce((prev, getter) => ({
+  generate(overrides: TOverrides<TObject, Partial<TObject>> = {}): TObject {
+    return this.getters.reduce((prev, getter) => ({
       ...prev,
       [getter.attribute]: getter.calculate(prev),
     }), this.mergeOverrides(overrides));
+  }
 
-  array = (overrides: TOverrides<TObject, Partial<TObject>>[]): TObject[] =>
-    overrides.map(this.generate);
+  array(overrides: TOverrides<TObject, Partial<TObject>>[]): TObject[] {
+    return overrides.map(o => this.generate(o));
+  }
 
-  overwrite = (base: TObject, overrides: TOverrides<TObject, Partial<TObject>>): TObject =>
-    this.generate(mergeOverrides<TObject, Partial<TObject>>(base, overrides));
+  overwrite(base: TObject, overrides: TOverrides<TObject, Partial<TObject>>): TObject {
+    return this.generate(mergeOverrides<TObject, Partial<TObject>>(base, overrides));
+  }
 
-  extend = <TNextObject extends TObject>(overrides: TOverrides<TObject, TNextObject>): TFixtureClass<TNextObject> =>
-    new this.Klass<TNextObject>(this.mergeOverrides<TNextObject>(overrides));
+  extend<TNextObject extends TObject>(overrides: TOverrides<TObject, TNextObject>): TFixtureClass<TNextObject> {
+    return new this.Klass<TNextObject>(this.mergeOverrides<TNextObject>(overrides));
+  }
 
-  defaults = (nextDefaults: TOverrides<TObject, Partial<TObject>>): TFixtureClass<TObject> =>
-    new this.Klass<TObject>(this.mergeOverrides<Partial<TObject>>(nextDefaults));
+  defaults(nextDefaults: TOverrides<TObject, Partial<TObject>>): TFixtureClass<TObject> {
+    return new this.Klass<TObject>(this.mergeOverrides<Partial<TObject>>(nextDefaults));
+  }
 
-  addGetter = <TKey extends keyof TObject>(key: TKey, calculate: (obj: TObject) => TObject[TKey]) =>
-    new this.Klass(this.defaultFixture, [
+  addGetter<TKey extends keyof TObject>(key: TKey, calculate: (obj: TObject) => TObject[TKey]) {
+    return new this.Klass(this.defaultFixture, [
       ...this.getters,
       {
         attribute: key,
         calculate,
       }
     ]);
+  }
 
   createFunction(): TFixtureFunction<TObject> {
     const fixtureFunction: TFixtureFunction<TObject> = (overrides) => this.generate(overrides);
 
     fixtureFunction.context = this;
-    fixtureFunction.generate = this.generate;
-    fixtureFunction.array = this.array;
-    fixtureFunction.overwrite = this.overwrite;
-    fixtureFunction.createFunction = this.createFunction;
+    fixtureFunction.generate = this.generate.bind(this);
+    fixtureFunction.array = this.array.bind(this);
+    fixtureFunction.overwrite = this.overwrite.bind(this);
+    fixtureFunction.createFunction = this.createFunction.bind(this);
 
     fixtureFunction.addGetter = <TKey extends keyof TObject>(
       key: TKey,

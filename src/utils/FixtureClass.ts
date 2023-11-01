@@ -23,6 +23,10 @@ export class FixtureClass<TObject extends TFixture> implements TFixtureClass<TOb
     TNextObject extends Partial<TObject>
   >(overridesOrFn: TOverrides<TObject, TNextObject>) => mergeOverrides(this.getDefaultAttributes(), overridesOrFn);
 
+  private get Klass() {
+    return this.constructor as typeof FixtureClass;
+  }
+
   generate = (overrides: TOverrides<TObject, Partial<TObject>> = {}): TObject =>
     this.getters.reduce((prev, getter) => ({
       ...prev,
@@ -36,13 +40,13 @@ export class FixtureClass<TObject extends TFixture> implements TFixtureClass<TOb
     this.generate(mergeOverrides<TObject, Partial<TObject>>(base, overrides));
 
   extend = <TNextObject extends TObject>(overrides: TOverrides<TObject, TNextObject>): TFixtureClass<TNextObject> =>
-    new FixtureClass<TNextObject>(this.mergeOverrides<TNextObject>(overrides));
+    new this.Klass<TNextObject>(this.mergeOverrides<TNextObject>(overrides));
 
   defaults = (nextDefaults: TOverrides<TObject, Partial<TObject>>): TFixtureClass<TObject> =>
-    new FixtureClass<TObject>(this.mergeOverrides<Partial<TObject>>(nextDefaults));
+    new this.Klass<TObject>(this.mergeOverrides<Partial<TObject>>(nextDefaults));
 
   addGetter = <TKey extends keyof TObject>(key: TKey, calculate: (obj: TObject) => TObject[TKey]) =>
-    new FixtureClass(this.defaultFixture, [
+    new this.Klass(this.defaultFixture, [
       ...this.getters,
       {
         attribute: key,
